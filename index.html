@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Blog Post Generator</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">✦ BlogForge AI</h1>
+        <p class="tagline">SEO blog posts with TOC, FAQ, outline-first mode &amp; live editor — powered by Google Gemini</p>
+      </div>
+      <div class="header-actions">
+        <button id="openHistoryBtn" class="btn-icon" type="button" title="History">
+          <span>🕘</span><span class="btn-icon-label">History</span>
+        </button>
+        <button id="openSettingsBtn" class="btn-icon" type="button" title="Settings">
+          <span class="gear">⚙</span><span class="btn-icon-label">Settings</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="generator-card">
+      <div class="card-header">
+        <h2>Create a New Blog Post</h2>
+        <span id="apiStatusBadge" class="api-badge api-badge-missing">API key not set</span>
+      </div>
+
+      <div class="field">
+        <label for="topic">Blog Topic / Title</label>
+        <input type="text" id="topic" placeholder="e.g. How to start a YouTube channel in 2026" />
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label for="preset">Blog Preset</label>
+          <select id="preset">
+            <option value="standard">Standard SEO Post</option>
+            <option value="affiliate">Affiliate Review</option>
+            <option value="saas">SaaS Blog</option>
+            <option value="localSeo">Local SEO Article</option>
+            <option value="tutorial">Tutorial</option>
+            <option value="comparison">Comparison Article</option>
+            <option value="productLaunch">Product Launch</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="postType">Post Type</label>
+          <select id="postType">
+            <option value="standard">Standard Article</option>
+            <option value="howto">How-to Guide</option>
+            <option value="listicle">Listicle</option>
+            <option value="comparison">Comparison</option>
+            <option value="review">Product Review</option>
+            <option value="news">News Update</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="tone">Tone</label>
+          <select id="tone">
+            <option value="professional">Professional</option>
+            <option value="friendly">Friendly &amp; Conversational</option>
+            <option value="informative">Informative</option>
+            <option value="persuasive">Persuasive</option>
+            <option value="casual">Casual</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="length">Length</label>
+          <select id="length">
+            <option value="short">Short (~500w)</option>
+            <option value="medium" selected>Medium (~1000w)</option>
+            <option value="long">Long (~1500w)</option>
+            <option value="xlong">X-Long (~2500w)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="audience">Target Audience</label>
+          <select id="audience">
+            <option value="general">General Readers</option>
+            <option value="beginners">Beginners</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="professionals">Professionals / Experts</option>
+            <option value="executives">Executives / Decision-makers</option>
+            <option value="students">Students</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="language">Language</label>
+          <select id="language">
+            <option value="English">English</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Spanish">Spanish</option>
+            <option value="French">French</option>
+            <option value="German">German</option>
+            <option value="Portuguese">Portuguese</option>
+            <option value="Arabic">Arabic</option>
+            <option value="Japanese">Japanese</option>
+            <option value="Chinese">Chinese (Simplified)</option>
+            <option value="Indonesian">Indonesian</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="keywords">Target Keywords (optional, comma-separated)</label>
+        <input type="text" id="keywords" placeholder="e.g. youtube growth, content strategy, beginner tips" />
+      </div>
+
+      <div class="field">
+        <label for="customInstructions">Custom Instructions (optional)</label>
+        <textarea id="customInstructions" rows="3" placeholder="e.g. Must include a real example from India. Avoid mentioning competitor X. Add a quick checklist near the end."></textarea>
+      </div>
+
+      <fieldset class="mode-fieldset">
+        <legend>Generation Mode</legend>
+        <label class="radio">
+          <input type="radio" name="mode" value="direct" checked />
+          <span><strong>Direct</strong> — generate the full post in one go</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="mode" value="outline" />
+          <span><strong>Outline-first</strong> — review &amp; edit the outline before expanding</span>
+        </label>
+      </fieldset>
+
+      <div class="actions">
+        <button id="generateBtn" class="btn-primary">Generate Blog Post</button>
+        <button id="stopBtn" class="btn-secondary hidden">Stop</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </section>
+
+    <!-- Outline review panel -->
+    <section id="outlineSection" class="output-card hidden">
+      <h2>Review &amp; Edit Outline</h2>
+      <p class="muted">Edit headings below, then click <strong>Expand to Full Post</strong>. Lines starting with <code>##</code> are sections; <code>###</code> are sub-sections.</p>
+      <textarea id="outlineEditor" rows="14"></textarea>
+      <div class="actions">
+        <button id="expandOutlineBtn" class="btn-primary">Expand to Full Post</button>
+        <button id="regenOutlineBtn" class="btn-secondary">Regenerate Outline</button>
+        <button id="cancelOutlineBtn" class="btn-secondary">Cancel</button>
+      </div>
+    </section>
+
+    <!-- Output -->
+    <section id="outputSection" class="output-card hidden">
+      <div class="output-toolbar">
+        <div class="output-toolbar-left">
+          <h2>Generated Blog Post</h2>
+          <span id="metaStats" class="meta-stats"></span>
+        </div>
+        <div class="output-toolbar-right">
+          <div class="view-toggle" role="tablist" aria-label="View mode">
+            <button class="view-btn active" data-view="preview">Preview</button>
+            <button class="view-btn" data-view="split">Split</button>
+            <button class="view-btn" data-view="edit">Edit</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="output-actions">
+        <button id="humanizeBtn" class="btn-secondary">✨ Humanize</button>
+        <button id="shorterBtn" class="btn-secondary">Make Shorter</button>
+        <button id="longerBtn" class="btn-secondary">Make Longer</button>
+        <button id="introBtn" class="btn-secondary">Improve Intro</button>
+        <button id="conclusionBtn" class="btn-secondary">Improve Conclusion</button>
+        <button id="examplesBtn" class="btn-secondary">Add Examples</button>
+        <button id="internalLinksBtn" class="btn-secondary">Add Internal Links</button>
+        <button id="simplifyBtn" class="btn-secondary">Simplify</button>
+        <button id="copyMdBtn" class="btn-secondary">Copy .md</button>
+        <button id="copyHtmlBtn" class="btn-secondary">Copy .html</button>
+        <button id="copyTxtBtn" class="btn-secondary">Copy .txt</button>
+        <button id="copyRenderedHtmlBtn" class="btn-secondary">Copy HTML</button>
+        <button id="downloadBtn" class="btn-secondary">Download .md</button>
+        <button id="saveHistoryBtn" class="btn-secondary">Save to History</button>
+      </div>
+
+      <div id="editorContainer" class="editor-container view-preview">
+        <textarea id="markdownEditor" spellcheck="false"></textarea>
+        <article id="output" class="blog-output"></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Built with Google Gemini API • Content only — no images</p>
+  </footer>
+
+  <!-- ============ Settings Modal ============ -->
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="settingsTitle">Settings</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="field">
+          <label for="apiKey">Google Gemini API Key</label>
+          <div class="input-with-action">
+            <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" />
+            <button id="toggleKeyBtn" type="button" class="btn-secondary btn-sm" title="Show / hide key">👁</button>
+          </div>
+          <small>For production, leave this blank and run <code>server.js</code> with <code>GEMINI_API_KEY</code>. Browser storage is only for local static use.</small>
+        </div>
+
+        <div class="field">
+          <label for="model">Model</label>
+          <input type="text" id="model" value="gemini-2.5-flash" />
+          <small>Default: <code>gemini-2.5-flash</code>. Examples: <code>gemini-2.5-pro</code>, <code>gemini-2.0-flash</code>, <code>gemini-1.5-flash</code>.</small>
+        </div>
+
+        <div class="field">
+          <label class="checkbox">
+            <input type="checkbox" id="streamingToggle" checked />
+            <span>Enable streaming output (faster perceived response)</span>
+          </label>
+          <small>If your model doesn't support streaming, it falls back automatically.</small>
+        </div>
+
+        <div class="field">
+          <button id="testConnectionBtn" type="button" class="btn-primary">Test API Connection</button>
+          <div id="testResult" class="status"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="saveSettingsBtn" class="btn-primary" type="button">Save</button>
+        <button class="btn-secondary" type="button" data-close-modal>Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ History Drawer ============ -->
+  <div id="historyDrawer" class="drawer hidden" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+    <div class="modal-backdrop" data-close-drawer></div>
+    <aside class="drawer-panel">
+      <div class="drawer-header">
+        <h2 id="historyTitle">History</h2>
+        <button class="modal-close" type="button" data-close-drawer aria-label="Close">×</button>
+      </div>
+      <div class="drawer-body">
+        <p class="muted">Last 10 generated posts. Stored in your browser only.</p>
+        <ul id="historyList" class="history-list"></ul>
+        <button id="clearHistoryBtn" class="btn-secondary">Clear All History</button>
+      </div>
+    </aside>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
