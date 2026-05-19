@@ -115,6 +115,15 @@
         <input type="text" id="keywords" placeholder="e.g. youtube growth, content strategy, beginner tips" />
       </div>
 
+      <div class="field research-field">
+        <label class="checkbox">
+          <input type="checkbox" id="researchToggle" />
+          <span>Research with DuckDuckGo before writing</span>
+        </label>
+        <input type="text" id="researchQuery" placeholder="Optional search query; defaults to topic + keywords" />
+        <small>Uses free DuckDuckGo search through the backend proxy. Results are used as context, not copied verbatim.</small>
+      </div>
+
       <div class="field">
         <label for="customInstructions">Custom Instructions (optional)</label>
         <textarea id="customInstructions" rows="3" placeholder="e.g. Must include a real example from India. Avoid mentioning competitor X. Add a quick checklist near the end."></textarea>

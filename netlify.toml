@@ -3,6 +3,11 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/api/search"
+  to = "/.netlify/functions/search"
+  status = 200
+
+[[redirects]]
   from = "/api/gemini/generate"
   to = "/.netlify/functions/gemini-generate"
   status = 200
@@ -11,4 +16,3 @@
   from = "/api/gemini/stream"
   to = "/.netlify/functions/gemini-stream"
   status = 200
-

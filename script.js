@@ -19,6 +19,8 @@ const lengthSelect = $("length");
 const audienceSelect = $("audience");
 const languageSelect = $("language");
 const keywordsInput = $("keywords");
+const researchToggle = $("researchToggle");
+const researchQueryInput = $("researchQuery");
 const customInstructions = $("customInstructions");
 
 const generateBtn = $("generateBtn");
@@ -194,6 +196,9 @@ function getFormValues() {
     audience: audienceSelect.value,
     language: languageSelect.value,
     keywords: keywordsInput.value.trim(),
+    researchEnabled: researchToggle.checked,
+    researchQuery: researchQueryInput.value.trim(),
+    research: "",
     custom: customInstructions.value.trim(),
     mode: document.querySelector('input[name="mode"]:checked').value,
   };
@@ -224,6 +229,10 @@ function postTypeGuidance(type) {
   }[type] || "";
 }
 
+function researchGuidance(research) {
+  return research ? `\nResearch context from DuckDuckGo:\n${research}\n\nUse this research to improve accuracy and topical coverage. Cite useful source URLs inline where natural. Do not copy source wording verbatim.` : "";
+}
+
 function buildFullPrompt(v) {
   const wordTarget = WORD_TARGETS[v.length] || 1000;
   const kw = v.keywords ? `Naturally integrate these SEO keywords: ${v.keywords}.` : "";
@@ -241,6 +250,7 @@ Requirements:
 - Approximate length: ${wordTarget} words.
 - ${kw}
 - ${cust}
+${researchGuidance(v.research)}
 - Do NOT include any images, image placeholders, or markdown image syntax.
 - Output MUST follow this exact structure, in order:
 
@@ -271,6 +281,7 @@ Format style: ${postTypeGuidance(v.postType)}
 Blog preset: ${presetGuidance(v.preset)}
 Keywords (weave in naturally): ${v.keywords || "(none)"}
 Custom instructions: ${v.custom || "(none)"}
+${researchGuidance(v.research)}
 
 Output strictly in this Markdown form (and nothing else):
 
@@ -309,6 +320,7 @@ Requirements:
 - Approximate length: ${wordTarget} words.
 - ${kw}
 - ${cust}
+${researchGuidance(v.research)}
 - Keep every heading from the outline. You may slightly refine wording but do not remove or reorder sections.
 - For the "## Table of Contents" — if missing, add one near the top, as an ordered list of links to each body H2 section.
 - For FAQs: under each "### Q: …" line, write a full answer paragraph.
@@ -710,6 +722,40 @@ function setStatus(text, kind = "") {
   statusEl.innerHTML = kind === "loading" ? `<span class="spinner"></span>${text}` : text;
 }
 
+async function getResearchContext(v, signal) {
+  if (!v.researchEnabled) return "";
+  if (!canUseProxy()) {
+    throw new Error("DuckDuckGo research needs the backend proxy. Run node server.js or deploy with Netlify Functions.");
+  }
+
+  const query = v.researchQuery || [v.topic, v.keywords].filter(Boolean).join(" ");
+  if (!query.trim()) return "";
+
+  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=6`, { signal });
+  if (!res.ok) {
+    let msg = `Search error ${res.status}`;
+    try {
+      const err = await res.json();
+      msg = err?.error?.message || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
+  const results = Array.isArray(data.results) ? data.results : [];
+  if (!results.length) return "";
+
+  return results.map((item, idx) => {
+    return `${idx + 1}. ${item.title}\nURL: ${item.url}\nSnippet: ${item.snippet}`;
+  }).join("\n\n");
+}
+
+async function attachResearch(v, signal) {
+  if (!v.researchEnabled) return v;
+  setStatus("Researching with DuckDuckGo...", "loading");
+  return { ...v, research: await getResearchContext(v, signal) };
+}
+
 function startBusy() {
   generateBtn.disabled = true;
   stopBtn.classList.remove("hidden");
@@ -754,6 +800,8 @@ async function generateFull(v) {
   outputEl.innerHTML = '<p class="muted">Streaming response…</p>';
 
   try {
+    v = await attachResearch(v, currentAbortController.signal);
+    setStatus("Generating your blog post...", "loading");
     const { text, usage } = await callGemini({
       prompt: buildFullPrompt(v),
       signal: currentAbortController.signal,
@@ -776,6 +824,8 @@ async function generateOutline(v) {
   outlineEditor.value = "";
 
   try {
+    v = await attachResearch(v, currentAbortController.signal);
+    setStatus("Drafting outline...", "loading");
     const { text } = await callGemini({
       prompt: buildOutlinePrompt(v),
       signal: currentAbortController.signal,
@@ -802,8 +852,10 @@ expandOutlineBtn.addEventListener("click", async () => {
   outputEl.innerHTML = '<p class="muted">Expanding…</p>';
 
   try {
+    const vWithResearch = await attachResearch(v, currentAbortController.signal);
+    setStatus("Expanding outline into full post...", "loading");
     const { text, usage } = await callGemini({
-      prompt: buildExpandPrompt(v, outline),
+      prompt: buildExpandPrompt(vWithResearch, outline),
       signal: currentAbortController.signal,
       onChunk: (full) => setMarkdown(full),
     });

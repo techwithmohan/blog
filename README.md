@@ -31,6 +31,8 @@ node server.js
 
 Then open <http://localhost:8000>. Leave the API key field blank; requests go through `/api/gemini/*`.
 
+DuckDuckGo research also uses the backend proxy at `/api/search`, so it works in local `server.js` mode and Netlify Function mode.
+
 ## Setup
 
 1. Get a free Gemini API key: <https://aistudio.google.com/app/apikey>
@@ -48,6 +50,7 @@ The default model is `gemini-2.5-flash`. If the API returns model or quota error
 - Configurable tone, length, keywords
 - Server-side API key proxy option
 - Blog presets and rewrite tools
+- Optional free DuckDuckGo research before generation
 - Copy as `.md`, `.html`, `.txt`, or rendered HTML
 - Word count vs target check
 - Automatic Table of Contents
